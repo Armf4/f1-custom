@@ -54,6 +54,8 @@ button.g{background:#2b303a}button:disabled{opacity:.4;cursor:default}
 .tc .tile{flex:1;background:rgba(0,0,0,.3);border-radius:9px;padding:7px;cursor:pointer;text-align:center;font-size:13px;transition:.15s}
 .tc .tile:hover{transform:translateY(-4px);background:rgba(0,0,0,.5)}
 .tc .tile img{width:100%;height:84px;object-fit:contain;display:block}
+.tabs{overflow-x:auto}.tabs button{white-space:nowrap}
+#toast{display:none;position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#000e;border:1px solid var(--line);padding:10px 16px;border-radius:10px;z-index:99;max-width:90vw;font-size:14px}
 .modal{display:none;position:fixed;inset:0;background:rgba(8,8,14,.9);z-index:50;align-items:center;justify-content:center;padding:14px}
 .mbox{background:#1c1c28;border:1px solid var(--line);border-radius:12px;width:min(1000px,100%);padding:14px}
 #vw3,#vw2{height:min(60vh,540px);width:100%;border-radius:8px;background:radial-gradient(circle at 50% 40%,#2c2c40,#10101a)}
@@ -64,7 +66,7 @@ button.g{background:#2b303a}button:disabled{opacity:.4;cursor:default}
 <body>
 <h1>🏎️ Motoposto Livery Resizer</h1>
 <p>ปรับขนาดสกินรถ/หมวก/ชุด ให้ตรงตามต้นแบบอัตโนมัติ แล้วสร้างโฟลเดอร์แยกตามทีม</p>
-<div class="tabs"><button class="on" onclick="tab(0)">🏁 ทีม</button><button onclick="tab(1)">🎨 สกิน</button><button onclick="tab(2)">🏷️ โลโก้</button></div>
+<div class="tabs"><button class="on" onclick="tab(0)">🏁 ทีม</button><button onclick="tab(1)">🎨 สกิน</button><button onclick="tab(2)">🏷️ โลโก้</button><button onclick="tab(3)">📁 คลัง</button></div>
 <div id="pgO"><div class="ov" id="ov"></div></div>
 <div id="pgL" style="display:none">
 
@@ -94,13 +96,13 @@ button.g{background:#2b303a}button:disabled{opacity:.4;cursor:default}
 <div class="row" style="margin-bottom:14px">
   <button class="g" id="add">+ เพิ่มทีม</button>
   <button id="folder">💾 บันทึกลงโฟลเดอร์ (สร้างโฟลเดอร์ทีมให้)</button>
-  <button class="g" id="zip">📦 ดาวน์โหลด ZIP</button>
+  <button class="g" id="zip">📦 ดาวน์โหลด ZIP</button><button class="g" id="skCloud">☁️ บันทึกขึ้นเว็บ (โฟลเดอร์ รถ/หมวก/ชุด)</button>
 </div>
 </div>
 <div id="pgLogo" style="display:none">
 <div class="card"><h2>1) นำเข้าโลโก้ + ลบพื้นหลังอัตโนมัติ (บันทึกเป็น PNG)</h2>
 <div class="slot" id="logoDrop" style="min-height:80px;padding-top:26px">ลากไฟล์โลโก้มาวางได้หลายไฟล์ (jpg/png/webp/gif/svg/bmp ฯลฯ) หรือคลิกเพื่อเลือก</div>
-<div class="row" style="margin-top:10px">ค่าความไวเริ่มต้น: <input type="number" id="tolD" value="40" min="0" max="200">
+<div class="row" style="margin-top:10px">ค่าความไวเริ่มต้น: <input type="number" id="tolD" value="40" min="0" max="200"> ขนาดโลโก้ (px ด้านยาว, 0 = ไม่ปรับ): <input type="number" id="lgMax" value="512" min="0" max="2048" style="width:90px">
 <button id="lgUp">📁 อัปโหลดโลโก้จากเครื่อง</button><button id="lgFolder">💾 บันทึกลงโฟลเดอร์ logo</button><button class="g" id="lgZip">📦 ZIP</button><button class="g" id="lgCloud">☁️ บันทึกขึ้นเว็บ</button><button class="g" id="lgPull">⬇️ ดึงจากเว็บ</button><button class="g" id="lgClear">ล้างคลัง</button></div>
 <p class="sm" style="margin:8px 0 0">โลโก้ในคลังจะถูกจำไว้ในเบราว์เซอร์นี้ ปรับสีพื้น/ความไวต่อโลโก้ได้ ถ้ายังเหลือขอบให้เพิ่มความไว ถ้าเนื้อโลโก้หายให้ลด</p>
 <div class="lib" id="lib"></div></div>
@@ -111,9 +113,14 @@ button.g{background:#2b303a}button:disabled{opacity:.4;cursor:default}
 ชื่อไฟล์: <input type="text" id="shName" value="logo_sheet" style="width:130px"></div>
 <div class="g4" id="slots"></div>
 <canvas id="sheet" width="1024" height="1024"></canvas>
-<div class="row" style="margin-top:10px"><button id="shSave">💾 บันทึกรูปรวม (PNG)</button></div></div>
+<div class="row" style="margin-top:10px"><button id="shSave">💾 บันทึกรูปรวม (PNG)</button><button id="shCloud">☁️ บันทึกเข้าโฟลเดอร์ brand logo</button><button class="g" id="shPull">⬇️ ดึงโลโก้จากเว็บ</button></div></div>
 </div>
+<div id="pgLib" style="display:none"><div class="row" style="margin-bottom:12px"><button class="g" onclick="loadCloudLib()">🔄 รีเฟรช</button><span class="sm">โฟลเดอร์ในเว็บ — แตะรูปเพื่อดู / บันทึกลงเครื่อง</span></div><div id="cl"></div></div>
 <div class="card"><div id="log">พร้อมใช้งาน</div></div>
+<div id="toast"></div>
+<div class="modal" id="pv"><div class="mbox" style="width:min(640px,100%);text-align:center"><img id="pvImg" style="max-width:100%;max-height:58vh;border-radius:8px;background:repeating-conic-gradient(#2a2d34 0 25%,#1b1d22 0 50%) 0 0/14px 14px"><div class="sm" id="pvName" style="margin:6px 0"></div>
+<div class="row" style="justify-content:center"><button id="pvSave">💾 บันทึกลงเครื่อง</button><button class="g" id="pvDel">🗑 ลบจากเว็บ</button><button class="g" id="pvX">ปิด</button></div>
+<p class="sm" style="margin:8px 0 0">ถ้าปุ่มบันทึกไม่ทำงานบน iPhone: กดค้างที่รูป แล้วเลือก "เพิ่มไปยังรูปภาพ"</p></div></div>
 <div class="modal" id="vw"><div class="mbox">
 <div class="row" style="margin-bottom:10px;justify-content:space-between">
 <div class="row"><button class="g" onclick="vNav(-1)">◀</button><b id="vwT" style="font-size:18px;min-width:200px;text-align:center"></b><button class="g" onclick="vNav(1)">▶</button></div>
@@ -133,7 +140,7 @@ let S={};try{S=JSON.parse(localStorage.getItem('lvSize')||'{}')}catch(e){}
 TYPES.forEach(t=>{if(S[t.k])Object.assign(t,S[t.k])});
 const save=()=>{try{localStorage.setItem('lvSize',JSON.stringify(Object.fromEntries(TYPES.map(t=>[t.k,{w:t.w,h:t.h}]))))}catch(e){}};
 const $=s=>document.querySelector(s);
-const log=m=>$('#log').textContent=m;
+const log=m=>{$('#log').textContent=m;toast(m)};
 
 function readImg(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=u})}
 
@@ -231,7 +238,7 @@ async function build(){
     for(const k in T.slots){
       const sl=T.slots[k];if(!sl.img)continue;
       const base=sl.name?sl.name.replace(/\.[^.]+$/,''):nm==='orig'?sl.file.name.replace(/\.[^.]+$/,''):sl.t.def;
-      out.push({path:folder+'/'+clean(base)+'.'+fmt,blob:await blobOf(draw(sl.img,sl.t.w,sl.t.h),fmt),folder,file:clean(base)+'.'+fmt});
+      out.push({path:folder+'/'+clean(base)+'.'+fmt,blob:await blobOf(draw(sl.img,sl.t.w,sl.t.h),fmt),folder,file:clean(base)+'.'+fmt,k,team:folder});
     }
   }
   return out;
@@ -242,7 +249,7 @@ $('#zip').onclick=async()=>{
   if(!window.JSZip)return log('โหลด JSZip ไม่ได้ (ต้องต่ออินเทอร์เน็ต) — ใช้ปุ่มบันทึกลงโฟลเดอร์แทน');
   const z=new JSZip();files.forEach(f=>z.file(f.path,f.blob));
   const a=document.createElement('a');a.href=URL.createObjectURL(await z.generateAsync({type:'blob'}));a.download='liveries.zip';a.click();
-  log('สร้าง ZIP แล้ว: '+files.length+' ไฟล์\n'+files.map(f=>f.path).join('\n'));cloudUp(files,'livery/');
+  log('สร้าง ZIP แล้ว: '+files.length+' ไฟล์\n'+files.map(f=>f.path).join('\n'));cloudSkins(files);
 };
 $('#folder').onclick=async()=>{
   if(!window.showDirectoryPicker)return log('เบราว์เซอร์นี้ไม่รองรับ — ใช้ Chrome/Edge หรือกดดาวน์โหลด ZIP');
@@ -253,11 +260,11 @@ $('#folder').onclick=async()=>{
       const d=await root.getDirectoryHandle(f.folder,{create:true});
       const h=await d.getFileHandle(f.file,{create:true}),w=await h.createWritable();await w.write(f.blob);await w.close();
     }
-    log('บันทึกเรียบร้อย '+files.length+' ไฟล์\n'+files.map(f=>f.path).join('\n'));cloudUp(files,'livery/');
+    log('บันทึกเรียบร้อย '+files.length+' ไฟล์\n'+files.map(f=>f.path).join('\n'));cloudSkins(files);
   }catch(e){log('ยกเลิก/ผิดพลาด: '+e.message)}
 };
 /* ===== LOGO TAB ===== */
-function tab(n){['pgO','pgL','pgLogo'].forEach((p,i)=>$('#'+p).style.display=i===n?'':'none');document.querySelectorAll('.tabs button').forEach((b,i)=>b.classList.toggle('on',i===n));if(n===0)renderOverview()}
+function tab(n){['pgO','pgL','pgLogo','pgLib'].forEach((p,i)=>$('#'+p).style.display=i===n?'':'none');document.querySelectorAll('.tabs button').forEach((b,i)=>b.classList.toggle('on',i===n));if(n===0)renderOverview();if(n===3)loadCloudLib()}
 const idb=new Promise(r=>{try{const q=indexedDB.open('lvlogos',1);q.onupgradeneeded=()=>q.result.createObjectStore('l',{keyPath:'id',autoIncrement:true});q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch(e){r(null)}});
 const tx=async(m,f)=>{const d=await idb;if(!d)return;return new Promise(r=>{try{const q=f(d.transaction('l',m).objectStore('l'));q.onsuccess=()=>r(q.result);q.onerror=()=>r()}catch(e){r()}})};
 const strip=r=>{const o={name:r.name,orig:r.orig,tol:r.tol,bg:r.bg,glob:r.glob,png:r.png};if(r.id)o.id=r.id;return o};
@@ -289,13 +296,13 @@ function removeBg(img,p){
   if(x1<0)return c;
   const o=document.createElement('canvas');o.width=x1-x0+1;o.height=y1-y0+1;o.getContext('2d').drawImage(c,x0,y0,o.width,o.height,0,0,o.width,o.height);return o;
 }
-async function proc(r){const i=await readImg(r.orig);r.png=await new Promise(x=>removeBg(i,r).toBlob(x,'image/png'));r.img=await readImg(r.png);if(r.url)URL.revokeObjectURL(r.url);r.url=URL.createObjectURL(r.png)}
+async function proc(r){const i=await readImg(r.orig);r.png=await new Promise(x=>fitMax(removeBg(i,r)).toBlob(x,'image/png'));r.img=await readImg(r.png);if(r.url)URL.revokeObjectURL(r.url);r.url=URL.createObjectURL(r.png)}
 async function addLogo(f){
   const r={name:f.name.replace(/\.[^.]+$/,''),orig:f,tol:+$('#tolD').value||40,bg:'auto',glob:false};
   try{await proc(r)}catch(e){return log('เปิดไฟล์นี้ไม่ได้ (เบราว์เซอร์ไม่รองรับ): '+f.name)}
   r.id=await tx('readwrite',s=>s.add(strip(r)));LIB.push(r);
 }
-async function addMany(fs){log('กำลังประมวลผล...');for(const f of fs)await addLogo(f);renderLib();log('นำเข้าแล้ว '+fs.length+' ไฟล์ — รวมในคลัง '+LIB.length)}
+async function addMany(fs){log('กำลังประมวลผล...');for(const f of fs)await addLogo(f);renderLib();log('นำเข้าแล้ว '+fs.length+' ไฟล์ — รวมในคลัง '+LIB.length);if(localStorage.getItem(CK))cloudLogos()}
 const lgDrop=$('#logoDrop');
 lgDrop.ondragover=e=>{e.preventDefault();lgDrop.classList.add('over')};lgDrop.ondragleave=()=>lgDrop.classList.remove('over');
 lgDrop.ondrop=e=>{e.preventDefault();lgDrop.classList.remove('over');addMany([...e.dataTransfer.files])};
@@ -311,13 +318,13 @@ function renderLib(){
     <div class=row style="justify-content:space-between"><span class=sm>${r.img.naturalWidth}×${r.img.naturalHeight}</span><button class=g>ลบ</button></div>`;
     const [nm,sel,rg,cb]=[d.querySelector('input[type=text]'),d.querySelector('select'),d.querySelector('input[type=range]'),d.querySelector('input[type=checkbox]')];
     sel.value=r.bg;
-    const redo=async()=>{await proc(r);await tx('readwrite',s=>s.put(strip(r)));d.querySelector('img').src=r.url;drawSheet()};
+    const redo=async()=>{await proc(r);await tx('readwrite',s=>s.put(strip(r)));d.querySelector('img').src=r.url;drawSheet();if(localStorage.getItem(CK))cloudLogos()};
     nm.oninput=()=>{r.name=nm.value;tx('readwrite',s=>s.put(strip(r)));refreshSel()};
     sel.onchange=()=>{r.bg=sel.value;redo()};
     rg.oninput=()=>d.querySelector('span').textContent=rg.value;
     rg.onchange=()=>{r.tol=+rg.value;redo()};
     cb.onchange=()=>{r.glob=cb.checked;redo()};
-    d.querySelector('button').onclick=async()=>{await tx('readwrite',s=>s.delete(r.id));LIB.splice(LIB.indexOf(r),1);SL.forEach(q=>{if(q.id==r.id)q.id=''});renderLib()};
+    d.querySelector('button').onclick=async()=>{await tx('readwrite',s=>s.delete(r.id));LIB.splice(LIB.indexOf(r),1);SL.forEach(q=>{if(q.id==r.id)q.id=''});renderLib();cloudDelPath('logo/'+clean(r.name)+'.png')};
     L.appendChild(d);
   });
   refreshSel();drawSheet();renderOverview();
@@ -419,7 +426,7 @@ $('#vwLoad').onclick=()=>{const i=document.createElement('input');i.type='file';
 $('#lgUp').onclick=()=>pick(addMany,true);
 $('#shDrop').appendChild(upBtn('📁 เลือกไฟล์ต้นแบบ',async f=>{const i=await readImg(f);$('#shW').value=i.naturalWidth;$('#shH').value=i.naturalHeight;$('#shW').onchange()}));
 /* ===== CLOUD (Vercel Blob via /api/sync) ===== */
-const CK='lvCloudKey',logAdd=m=>$('#log').textContent+='\n'+m;
+const CK='lvCloudKey',logAdd=m=>{$('#log').textContent+='\n'+m;toast(m)};
 function cloudKey(){let k=localStorage.getItem(CK);if(!k){k=prompt('ใส่รหัส SYNC_KEY ที่ตั้งไว้ใน Vercel (ถามครั้งเดียว)');if(k)localStorage.setItem(CK,k)}return k}
 async function cloud(op,q,body,ct){
   const k=cloudKey();if(!k)throw Error('ไม่มีรหัส');
@@ -435,7 +442,7 @@ async function cloudUp(files,prefix,mirror){
     logAdd('☁️ เก็บขึ้นเว็บแล้ว '+ok+'/'+files.length+' ไฟล์'+(bad.length?'\n⚠ ไม่สำเร็จ: '+bad.join(', '):''));
   }catch(e){logAdd('☁️ เก็บขึ้นเว็บไม่ได้: '+e.message+' (ใช้ได้เฉพาะบนเว็บที่ deploy พร้อมตั้งค่า Blob แล้ว)')}
 }
-function cloudLogos(){if(!LIB.length)return log('ยังไม่มีโลโก้');return cloudUp(logoFiles(),'',"logo/")}
+function cloudLogos(){if(!LIB.length)return log('ยังไม่มีโลโก้');return cloudUp(logoFiles(),'')}
 async function cloudPull(){
   try{
     const have=new Set(LIB.map(r=>clean(r.name)));let n=0;
@@ -449,6 +456,40 @@ async function cloudPull(){
 }
 $('#lgCloud').onclick=cloudLogos;$('#lgPull').onclick=cloudPull;
 libReady.then(()=>{if(localStorage.getItem(CK))cloudPull()});
+function toast(m){const t=$('#toast');t.textContent=String(m).split('\n')[0];t.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display='none',3500)}
+function fitMax(c){const M=+$('#lgMax').value;if(!M)return c;const k=M/Math.max(c.width,c.height),o=document.createElement('canvas');o.width=Math.max(1,Math.round(c.width*k));o.height=Math.max(1,Math.round(c.height*k));const x=o.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(c,0,0,o.width,o.height);return o}
+function cloudSkins(files){return cloudUp(files.map(f=>({path:f.k+'/'+f.team+'.'+f.file.split('.').pop(),blob:f.blob})),'')}
+async function cloudDelPath(p){if(!localStorage.getItem(CK))return;try{for(const b of await cloud('list',{prefix:p}))if(b.path===p)await cloud('del',{url:b.url})}catch(e){}}
+$('#skCloud').onclick=async()=>{const f=await build();if(!f.length)return log('ยังไม่มีไฟล์');log('กำลังอัปโหลด...');cloudSkins(f)};
+$('#shCloud').onclick=()=>$('#sheet').toBlob(b=>{log('กำลังอัปโหลด...');cloudUp([{path:'brand-logo/'+clean($('#shName').value||'logo_sheet')+'.png',blob:b}],'')},'image/png');
+$('#shPull').onclick=cloudPull;
+// cloud library
+const FOLDERS=[['logo','🏷️ logo'],['car','🏎️ รถ'],['helmet','⛑️ หมวก'],['suit','🧥 ชุด'],['brand-logo','🖼️ brand logo (รูปรวมโลโก้)']];
+async function loadCloudLib(){
+  const R=$('#cl');R.textContent='กำลังโหลด...';
+  try{
+    const all=await cloud('list',{prefix:''});R.innerHTML='';
+    FOLDERS.forEach(([f,n])=>{
+      const items=all.filter(b=>b.path.startsWith(f+'/')),c=document.createElement('div');c.className='card';
+      c.innerHTML=`<h2>${n} (${items.length})</h2><div class=lib></div>`;const g=c.querySelector('.lib');
+      if(!items.length)g.innerHTML='<span class=sm>ว่าง</span>';
+      items.forEach(b=>{const t=document.createElement('div');t.className='lc';t.style.cursor='pointer';
+        t.innerHTML=`<img src="${b.url}?v=${b.size}" loading=lazy><div class=sm style="margin-top:4px;word-break:break-all">${esc(b.path.slice(f.length+1))}</div>`;t.onclick=()=>openPv(b);g.appendChild(t)});
+      R.appendChild(c);
+    });
+  }catch(e){R.textContent='โหลดไม่ได้: '+e.message+' (ใช้ได้เฉพาะบนเว็บที่ deploy และตั้งค่า Blob แล้ว)'}
+}
+const PV={};
+function openPv(b){PV.b=b;PV.blob=null;const u=b.url+'?v='+b.size;$('#pvName').textContent=b.path;$('#pvImg').src=u;$('#pv').style.display='flex';fetch(u).then(r=>r.blob()).then(x=>PV.blob=x).catch(()=>{})}
+$('#pvX').onclick=()=>$('#pv').style.display='none';
+$('#pvSave').onclick=()=>{
+  const nm=PV.b.path.split('/').pop();
+  if(PV.blob){const f=new File([PV.blob],nm,{type:PV.blob.type||'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){navigator.share({files:[f]}).catch(()=>{});return}
+    const a=document.createElement('a');a.href=URL.createObjectURL(PV.blob);a.download=nm;a.click();return}
+  window.open(PV.b.url,'_blank');
+};
+$('#pvDel').onclick=async()=>{if(!confirm('ลบไฟล์นี้จากเว็บ?'))return;try{await cloud('del',{url:PV.b.url});$('#pv').style.display='none';loadCloudLib()}catch(e){log('ลบไม่ได้: '+e.message)}};
 </script>
 </body>
 </html>
