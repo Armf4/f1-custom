@@ -101,7 +101,7 @@ button.g{background:#2b303a}button:disabled{opacity:.4;cursor:default}
 <div class="card"><h2>1) นำเข้าโลโก้ + ลบพื้นหลังอัตโนมัติ (บันทึกเป็น PNG)</h2>
 <div class="slot" id="logoDrop" style="min-height:80px;padding-top:26px">ลากไฟล์โลโก้มาวางได้หลายไฟล์ (jpg/png/webp/gif/svg/bmp ฯลฯ) หรือคลิกเพื่อเลือก</div>
 <div class="row" style="margin-top:10px">ค่าความไวเริ่มต้น: <input type="number" id="tolD" value="40" min="0" max="200">
-<button id="lgUp">📁 อัปโหลดโลโก้จากเครื่อง</button><button id="lgFolder">💾 บันทึกลงโฟลเดอร์ logo</button><button class="g" id="lgZip">📦 ZIP</button><button class="g" id="lgClear">ล้างคลัง</button></div>
+<button id="lgUp">📁 อัปโหลดโลโก้จากเครื่อง</button><button id="lgFolder">💾 บันทึกลงโฟลเดอร์ logo</button><button class="g" id="lgZip">📦 ZIP</button><button class="g" id="lgCloud">☁️ บันทึกขึ้นเว็บ</button><button class="g" id="lgPull">⬇️ ดึงจากเว็บ</button><button class="g" id="lgClear">ล้างคลัง</button></div>
 <p class="sm" style="margin:8px 0 0">โลโก้ในคลังจะถูกจำไว้ในเบราว์เซอร์นี้ ปรับสีพื้น/ความไวต่อโลโก้ได้ ถ้ายังเหลือขอบให้เพิ่มความไว ถ้าเนื้อโลโก้หายให้ลด</p>
 <div class="lib" id="lib"></div></div>
 <div class="card"><h2>2) รูปรวมโลโก้ทีม (สูงสุด 12 ทีม = 4 คอลัมน์ × 3 แถว)</h2>
@@ -242,7 +242,7 @@ $('#zip').onclick=async()=>{
   if(!window.JSZip)return log('โหลด JSZip ไม่ได้ (ต้องต่ออินเทอร์เน็ต) — ใช้ปุ่มบันทึกลงโฟลเดอร์แทน');
   const z=new JSZip();files.forEach(f=>z.file(f.path,f.blob));
   const a=document.createElement('a');a.href=URL.createObjectURL(await z.generateAsync({type:'blob'}));a.download='liveries.zip';a.click();
-  log('สร้าง ZIP แล้ว: '+files.length+' ไฟล์\n'+files.map(f=>f.path).join('\n'));
+  log('สร้าง ZIP แล้ว: '+files.length+' ไฟล์\n'+files.map(f=>f.path).join('\n'));cloudUp(files,'livery/');
 };
 $('#folder').onclick=async()=>{
   if(!window.showDirectoryPicker)return log('เบราว์เซอร์นี้ไม่รองรับ — ใช้ Chrome/Edge หรือกดดาวน์โหลด ZIP');
@@ -253,7 +253,7 @@ $('#folder').onclick=async()=>{
       const d=await root.getDirectoryHandle(f.folder,{create:true});
       const h=await d.getFileHandle(f.file,{create:true}),w=await h.createWritable();await w.write(f.blob);await w.close();
     }
-    log('บันทึกเรียบร้อย '+files.length+' ไฟล์\n'+files.map(f=>f.path).join('\n'));
+    log('บันทึกเรียบร้อย '+files.length+' ไฟล์\n'+files.map(f=>f.path).join('\n'));cloudUp(files,'livery/');
   }catch(e){log('ยกเลิก/ผิดพลาด: '+e.message)}
 };
 /* ===== LOGO TAB ===== */
@@ -329,12 +329,12 @@ $('#lgFolder').onclick=async()=>{
   if(!window.showDirectoryPicker)return log('เบราว์เซอร์นี้ไม่รองรับ — ใช้ Chrome/Edge หรือกด ZIP');
   try{const root=await showDirectoryPicker({mode:'readwrite'}),f=logoFiles(),d=await root.getDirectoryHandle('logo',{create:true});
     for(const x of f){const w=await(await d.getFileHandle(x.file,{create:true})).createWritable();await w.write(x.blob);await w.close()}
-    log('บันทึกลงโฟลเดอร์ logo แล้ว '+f.length+' ไฟล์')}catch(e){log('ยกเลิก/ผิดพลาด: '+e.message)}
+    log('บันทึกลงโฟลเดอร์ logo แล้ว '+f.length+' ไฟล์');cloudLogos()}catch(e){log('ยกเลิก/ผิดพลาด: '+e.message)}
 };
 $('#lgZip').onclick=async()=>{
   if(!LIB.length)return log('ยังไม่มีโลโก้');if(!window.JSZip)return log('โหลด JSZip ไม่ได้ (ต้องต่ออินเทอร์เน็ต)');
   const z=new JSZip();logoFiles().forEach(f=>z.file(f.path,f.blob));
-  const a=document.createElement('a');a.href=URL.createObjectURL(await z.generateAsync({type:'blob'}));a.download='logo.zip';a.click();log('สร้าง logo.zip แล้ว')
+  const a=document.createElement('a');a.href=URL.createObjectURL(await z.generateAsync({type:'blob'}));a.download='logo.zip';a.click();log('สร้าง logo.zip แล้ว');cloudLogos()
 };
 // sheet composer
 let SH={};try{SH=JSON.parse(localStorage.getItem('lvSheet')||'{}')}catch(e){}
@@ -356,7 +356,7 @@ function drawSheet(){
 $('#shBg').onchange=drawSheet;
 drop($('#shDrop'),async f=>{const i=await readImg(f);$('#shW').value=i.naturalWidth;$('#shH').value=i.naturalHeight;$('#shW').onchange()});
 $('#shSave').onclick=()=>$('#sheet').toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=clean($('#shName').value||'logo_sheet')+'.png';a.click();log('บันทึกรูปรวมแล้ว '+$('#sheet').width+'×'+$('#sheet').height)});
-(async()=>{const all=(await tx('readonly',s=>s.getAll()))||[];for(const r of all){try{if(!r.png)await proc(r);else{r.img=await readImg(r.png);r.url=URL.createObjectURL(r.png)}LIB.push(r)}catch(e){}}renderLib()})();
+const libReady=(async()=>{const all=(await tx('readonly',s=>s.getAll()))||[];for(const r of all){try{if(!r.png)await proc(r);else{r.img=await readImg(r.png);r.url=URL.createObjectURL(r.png)}LIB.push(r)}catch(e){}}renderLib()})();
 
 /* ===== OVERVIEW + 3D VIEWER ===== */
 function shade(hex,f){const n=parseInt(hex.slice(1),16),c=i=>Math.max(0,Math.min(255,Math.round(((n>>i)&255)*f)));return `rgb(${c(16)},${c(8)},${c(0)})`}
@@ -418,6 +418,37 @@ $('#vwLoad').onclick=()=>{const i=document.createElement('input');i.type='file';
 (async()=>{const sv=(await kvGet('teams'))||[];if(sv.length)for(const d of sv)await addTeam(d);else addTeam();renderOverview()})();
 $('#lgUp').onclick=()=>pick(addMany,true);
 $('#shDrop').appendChild(upBtn('📁 เลือกไฟล์ต้นแบบ',async f=>{const i=await readImg(f);$('#shW').value=i.naturalWidth;$('#shH').value=i.naturalHeight;$('#shW').onchange()}));
+/* ===== CLOUD (Vercel Blob via /api/sync) ===== */
+const CK='lvCloudKey',logAdd=m=>$('#log').textContent+='\n'+m;
+function cloudKey(){let k=localStorage.getItem(CK);if(!k){k=prompt('ใส่รหัส SYNC_KEY ที่ตั้งไว้ใน Vercel (ถามครั้งเดียว)');if(k)localStorage.setItem(CK,k)}return k}
+async function cloud(op,q,body,ct){
+  const k=cloudKey();if(!k)throw Error('ไม่มีรหัส');
+  const r=await fetch('/api/sync?'+new URLSearchParams({op,...q}),{method:body?'POST':'GET',headers:{'x-key':k,...(body?{'content-type':'application/octet-stream'}:{})},body});
+  if(r.status===401){localStorage.removeItem(CK);throw Error('รหัสไม่ถูกต้อง')}
+  const j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.error||('HTTP '+r.status));return j;
+}
+async function cloudUp(files,prefix,mirror){
+  try{
+    let ok=0;const bad=[];
+    for(const f of files){try{await cloud('put',{path:prefix+f.path,ct:f.blob.type||'image/png'},f.blob);ok++}catch(e){bad.push(f.path+' ('+e.message+')');if(/รหัส/.test(e.message))break}}
+    if(mirror){const keep=new Set(files.map(f=>prefix+f.path));for(const b of await cloud('list',{prefix:mirror}))if(!keep.has(b.path))await cloud('del',{url:b.url})}
+    logAdd('☁️ เก็บขึ้นเว็บแล้ว '+ok+'/'+files.length+' ไฟล์'+(bad.length?'\n⚠ ไม่สำเร็จ: '+bad.join(', '):''));
+  }catch(e){logAdd('☁️ เก็บขึ้นเว็บไม่ได้: '+e.message+' (ใช้ได้เฉพาะบนเว็บที่ deploy พร้อมตั้งค่า Blob แล้ว)')}
+}
+function cloudLogos(){if(!LIB.length)return log('ยังไม่มีโลโก้');return cloudUp(logoFiles(),'',"logo/")}
+async function cloudPull(){
+  try{
+    const have=new Set(LIB.map(r=>clean(r.name)));let n=0;
+    for(const b of await cloud('list',{prefix:'logo/'})){
+      const nm=b.path.replace(/^logo\//,'').replace(/\.png$/i,'');if(have.has(nm))continue;
+      const blob=await (await fetch(b.url)).blob(),r={name:nm,orig:blob,tol:40,bg:'auto',glob:false,png:blob};
+      r.img=await readImg(blob);r.url=URL.createObjectURL(blob);r.id=await tx('readwrite',s=>s.add(strip(r)));LIB.push(r);n++;
+    }
+    renderLib();log('☁️ ดึงโลโก้จากเว็บแล้ว '+n+' ไฟล์ใหม่');
+  }catch(e){log('☁️ ดึงจากเว็บไม่ได้: '+e.message)}
+}
+$('#lgCloud').onclick=cloudLogos;$('#lgPull').onclick=cloudPull;
+libReady.then(()=>{if(localStorage.getItem(CK))cloudPull()});
 </script>
 </body>
 </html>
