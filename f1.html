@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motoposto Livery Resizer</title>
+<link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital,wght@0,600;0,700;1,700&family=Noto+Sans+Thai:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{--bg:#15151e;--card:#1f1f2b;--line:#33334a;--tx:#fff;--mut:#9b9bb0;--ac:#e10600;--ok:#3ecf8e}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 "Titillium Web","Noto Sans Thai",system-ui,sans-serif;padding:20px;max-width:1200px;margin:auto}
+h1{font:italic 700 28px "Titillium Web","Noto Sans Thai",sans-serif;margin:0 0 4px;letter-spacing:.5px;border-left:6px solid var(--ac);padding-left:10px}h2{font-size:15px;margin:0 0 10px;color:var(--mut);font-weight:600}
+p{color:var(--mut);margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input[type=text],input[type=number],select{background:#12141a;border:1px solid var(--line);color:var(--tx);border-radius:8px;padding:7px 9px;font:inherit}
+input[type=number]{width:80px}
+button{background:var(--ac);color:#fff;border:0;border-radius:8px;padding:8px 14px;font:inherit;cursor:pointer}
+button.g{background:#2b303a}button:disabled{opacity:.4;cursor:default}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.slot{border:2px dashed var(--line);border-radius:10px;padding:8px;text-align:center;min-height:170px;position:relative}
+.slot.over{border-color:var(--ac)}
+.slot b{display:block;margin-bottom:4px}
+.slot canvas{max-width:100%;max-height:110px;background:repeating-conic-gradient(#2a2d34 0 25%,#1b1d22 0 50%) 0 0/14px 14px;border-radius:4px}
+.sm{font-size:12px;color:var(--mut)}.ok{color:var(--ok)}.warn{color:#ffb020}
+.slot input[type=text]{width:100%;margin-top:4px;font-size:12px}
+.team-h{display:flex;gap:8px;margin-bottom:6px}.team-h input{flex:1}
+.lib{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:10px;margin-top:12px}
+.lc{border:1px solid var(--line);border-radius:10px;padding:8px;font-size:12px}
+.lc img{width:100%;height:90px;object-fit:contain;border-radius:6px;background:repeating-conic-gradient(#2a2d34 0 25%,#1b1d22 0 50%) 0 0/14px 14px}
+.lc input[type=text],.lc select{width:100%;margin:4px 0;font-size:12px;padding:4px 6px}
+.lc input[type=range]{width:100%}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+@media(max-width:760px){.g4{grid-template-columns:repeat(2,1fr)}}
+.g4>div{border:1px solid var(--line);border-radius:8px;padding:6px;font-size:12px}
+.g4 select{width:100%;font-size:12px;padding:4px}.g4 input[type=range]{width:100%}
+#sheet{max-width:100%;border:1px solid var(--line);border-radius:8px;background:repeating-conic-gradient(#2a2d34 0 25%,#1b1d22 0 50%) 0 0/16px 16px}
+.tabs{display:flex;gap:4px;margin:0 -20px 18px;padding:0 20px;border-bottom:1px solid var(--line);background:#0f0f16}
+.tabs button{background:none;border-radius:0;border-bottom:3px solid transparent;padding:14px 18px;font-weight:700;font-size:16px;color:var(--mut)}
+.tabs button.on{color:#fff;border-color:var(--ac)}
+.ov{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+@media(max-width:800px){.ov{grid-template-columns:1fr}}
+.tc{border-radius:12px;overflow:hidden;color:#fff;position:relative;min-height:300px;display:flex;flex-direction:column;box-shadow:0 6px 20px #0006}
+.tc h3{font-size:32px;margin:18px 22px 4px;font-weight:700;font-family:"Titillium Web",sans-serif}
+.tc .bd{position:absolute;top:22px;right:24px;width:66px;height:66px;border-radius:50%;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center}
+.tc .bd img{width:46px;height:46px;object-fit:contain}
+.tc .st{margin-top:auto;padding:16px 18px;background:radial-gradient(rgba(255,255,255,.2) 1px,transparent 1.6px) 0 0/6px 6px,rgba(0,0,0,.25);display:flex;gap:10px}
+.tc .tile{flex:1;background:rgba(0,0,0,.3);border-radius:9px;padding:7px;cursor:pointer;text-align:center;font-size:13px;transition:.15s}
+.tc .tile:hover{transform:translateY(-4px);background:rgba(0,0,0,.5)}
+.tc .tile img{width:100%;height:84px;object-fit:contain;display:block}
+.modal{display:none;position:fixed;inset:0;background:rgba(8,8,14,.9);z-index:50;align-items:center;justify-content:center;padding:14px}
+.mbox{background:#1c1c28;border:1px solid var(--line);border-radius:12px;width:min(1000px,100%);padding:14px}
+#vw3,#vw2{height:min(60vh,540px);width:100%;border-radius:8px;background:radial-gradient(circle at 50% 40%,#2c2c40,#10101a)}
+#vw3 canvas{display:block}#vw2{object-fit:contain;display:none}
+#log{white-space:pre-wrap;font:12px/1.5 monospace;color:var(--mut)}
+</style>
+</head>
+<body>
+<h1>🏎️ Motoposto Livery Resizer</h1>
+<p>ปรับขนาดสกินรถ/หมวก/ชุด ให้ตรงตามต้นแบบอัตโนมัติ แล้วสร้างโฟลเดอร์แยกตามทีม</p>
+<div class="tabs"><button class="on" onclick="tab(0)">🏁 ทีม</button><button onclick="tab(1)">🎨 สกิน</button><button onclick="tab(2)">🏷️ โลโก้</button></div>
+<div id="pgO"><div class="ov" id="ov"></div></div>
+<div id="pgL" style="display:none">
+
+<div class="card">
+  <h2>1) ขนาดต้นแบบ (Template)</h2>
+  <div class="row" id="tpl"></div>
+  <p class="sm" style="margin:8px 0 0">ค่าเริ่มต้นอ่านจากไฟล์ตัวอย่างของคุณแล้ว — หรือลากไฟล์ต้นแบบมาวางที่ช่องเพื่ออ่านขนาดใหม่ / พิมพ์แก้เองได้ (จำค่าไว้ในเครื่อง)</p>
+</div>
+
+<div class="card">
+  <h2>2) ตัวเลือก</h2>
+  <div class="row">
+    โหมด:
+    <select id="fit">
+      <option value="stretch">ยืดให้พอดี (Stretch) – ตรง UV ที่สุด</option>
+      <option value="contain">คงสัดส่วน เว้นขอบโปร่งใส (Contain)</option>
+      <option value="cover">คงสัดส่วน ตัดส่วนเกิน (Cover)</option>
+    </select>
+    ฟอร์แมต:
+    <select id="fmt"><option value="png">PNG (มีความโปร่งใส)</option><option value="jpg">JPG</option></select>
+    ชื่อไฟล์:
+    <select id="nameMode"><option value="tpl">ใช้ชื่อต้นแบบ (car/helmet/suit)</option><option value="orig">ใช้ชื่อไฟล์เดิม</option></select>
+  </div>
+</div>
+
+<div id="teams"></div>
+<div class="row" style="margin-bottom:14px">
+  <button class="g" id="add">+ เพิ่มทีม</button>
+  <button id="folder">💾 บันทึกลงโฟลเดอร์ (สร้างโฟลเดอร์ทีมให้)</button>
+  <button class="g" id="zip">📦 ดาวน์โหลด ZIP</button>
+</div>
+</div>
+<div id="pgLogo" style="display:none">
+<div class="card"><h2>1) นำเข้าโลโก้ + ลบพื้นหลังอัตโนมัติ (บันทึกเป็น PNG)</h2>
+<div class="slot" id="logoDrop" style="min-height:80px;padding-top:26px">ลากไฟล์โลโก้มาวางได้หลายไฟล์ (jpg/png/webp/gif/svg/bmp ฯลฯ) หรือคลิกเพื่อเลือก</div>
+<div class="row" style="margin-top:10px">ค่าความไวเริ่มต้น: <input type="number" id="tolD" value="40" min="0" max="200">
+<button id="lgUp">📁 อัปโหลดโลโก้จากเครื่อง</button><button id="lgFolder">💾 บันทึกลงโฟลเดอร์ logo</button><button class="g" id="lgZip">📦 ZIP</button><button class="g" id="lgClear">ล้างคลัง</button></div>
+<p class="sm" style="margin:8px 0 0">โลโก้ในคลังจะถูกจำไว้ในเบราว์เซอร์นี้ ปรับสีพื้น/ความไวต่อโลโก้ได้ ถ้ายังเหลือขอบให้เพิ่มความไว ถ้าเนื้อโลโก้หายให้ลด</p>
+<div class="lib" id="lib"></div></div>
+<div class="card"><h2>2) รูปรวมโลโก้ทีม (สูงสุด 12 ทีม = 4 คอลัมน์ × 3 แถว)</h2>
+<div class="row"><div class="slot" id="shDrop" style="min-height:0;padding:8px 14px">ลากไฟล์ต้นแบบมาอ่านขนาด</div>
+<input type="number" id="shW" value="1024"> × <input type="number" id="shH" value="1024"> px
+พื้นหลัง: <select id="shBg"><option value="black">ดำ (เหมือนต้นแบบ)</option><option value="none">โปร่งใส</option></select>
+ชื่อไฟล์: <input type="text" id="shName" value="logo_sheet" style="width:130px"></div>
+<div class="g4" id="slots"></div>
+<canvas id="sheet" width="1024" height="1024"></canvas>
+<div class="row" style="margin-top:10px"><button id="shSave">💾 บันทึกรูปรวม (PNG)</button></div></div>
+</div>
+<div class="card"><div id="log">พร้อมใช้งาน</div></div>
+<div class="modal" id="vw"><div class="mbox">
+<div class="row" style="margin-bottom:10px;justify-content:space-between">
+<div class="row"><button class="g" onclick="vNav(-1)">◀</button><b id="vwT" style="font-size:18px;min-width:200px;text-align:center"></b><button class="g" onclick="vNav(1)">▶</button></div>
+<div class="tabs" id="vwTabs" style="margin:0;padding:0;background:none;border:0"><button data-k="car">🏎️ รถ</button><button data-k="helmet">⛑️ หมวก</button><button data-k="suit">🧥 ชุด</button></div>
+<button class="g" id="vwX">✕ ปิด</button></div>
+<div id="vw3"></div><img id="vw2">
+<div class="row" style="margin-top:10px"><button id="vwLoad">📂 โหลดโมเดล 3D (.glb / .obj)</button><label><input type="checkbox" id="vwAuto" checked> หมุนอัตโนมัติ</label><span class="sm" id="vwInfo"></span></div>
+</div></div>
+
+<script>
+const TYPES=[
+ {k:'car',n:'🏎️ รถ',w:1024,h:1024,def:'car'},
+ {k:'helmet',n:'⛑️ หมวก',w:2048,h:1024,def:'helmet'},
+ {k:'suit',n:'🧥 ชุด',w:1024,h:1024,def:'suit'}
+];
+let S={};try{S=JSON.parse(localStorage.getItem('lvSize')||'{}')}catch(e){}
+TYPES.forEach(t=>{if(S[t.k])Object.assign(t,S[t.k])});
+const save=()=>{try{localStorage.setItem('lvSize',JSON.stringify(Object.fromEntries(TYPES.map(t=>[t.k,{w:t.w,h:t.h}]))))}catch(e){}};
+const $=s=>document.querySelector(s);
+const log=m=>$('#log').textContent=m;
+
+function readImg(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=u})}
+
+// template boxes
+const tpl=$('#tpl');
+TYPES.forEach(t=>{
+  const d=document.createElement('div');d.className='slot';d.style.cssText='min-height:0;flex:1;min-width:230px';
+  d.innerHTML=`<b>${t.n}</b><input type=number id=w_${t.k} value=${t.w}> × <input type=number id=h_${t.k} value=${t.h}> px<div class=sm>ลากไฟล์ต้นแบบมาวาง</div>`;
+  tpl.appendChild(d);
+  const upd=()=>{t.w=+$('#w_'+t.k).value||t.w;t.h=+$('#h_'+t.k).value||t.h;save();refreshAll()};
+  d.querySelectorAll('input').forEach(i=>i.onchange=upd);
+  const rd=async f=>{const i=await readImg(f);$('#w_'+t.k).value=t.w=i.naturalWidth;$('#h_'+t.k).value=t.h=i.naturalHeight;save();refreshAll()};drop(d,rd);d.appendChild(upBtn('📁 อ่านขนาดจากไฟล์',rd));
+});
+
+function drop(el,cb){
+  el.ondragover=e=>{e.preventDefault();el.classList.add('over')};
+  el.ondragleave=()=>el.classList.remove('over');
+  el.ondrop=e=>{e.preventDefault();el.classList.remove('over');const f=e.dataTransfer.files[0];if(f)cb(f)};
+  el.onclick=e=>{if(e.target.tagName==='INPUT')return;const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=()=>i.files[0]&&cb(i.files[0]);i.click()};
+}
+
+function pick(cb,multi){const i=document.createElement('input');i.type='file';i.accept='image/*';i.multiple=!!multi;i.onchange=()=>i.files.length&&cb(multi?[...i.files]:i.files[0]);i.click()}
+function upBtn(label,cb,multi){const b=document.createElement('button');b.className='g';b.textContent=label;b.style.cssText='margin-top:6px;font-size:12px;padding:5px 10px';b.onclick=e=>{e.stopPropagation();pick(cb,multi)};return b}
+// teams
+const teams=[];
+async function addTeam(d){
+  d=d||{};
+  const T={name:d.name||'Team '+(teams.length+1),color:d.color||'',manual:!!d.color,logoId:d.logoId||'',slots:{}};teams.push(T);
+  const c=document.createElement('div');c.className='card';
+  c.innerHTML=`<div class=team-h><input type=text value="${esc(T.name)}"><input type=color title="สีทีม" style="width:46px;padding:0;height:34px"><select class=lg title="โลโก้ทีม" style="max-width:160px"></select><button class=g>ลบ</button></div><div class=grid></div>`;
+  const ni=c.querySelector('input[type=text]'),ci=c.querySelector('input[type=color]');T.lgSel=c.querySelector('.lg');T.colorEl=ci;
+  ni.oninput=()=>{T.name=ni.value;saveTeams()};
+  ci.value=T.color||'#d32f2f';ci.oninput=()=>{T.color=ci.value;T.manual=true;saveTeams()};
+  T.lgSel.onchange=()=>{T.logoId=T.lgSel.value;saveTeams()};
+  c.querySelector('button').onclick=()=>{c.remove();teams.splice(teams.indexOf(T),1);saveTeams();renderOverview()};
+  const g=c.querySelector('.grid');
+  TYPES.forEach(t=>{
+    const s=document.createElement('div');s.className='slot';
+    s.innerHTML=`<b>${t.n}</b><div class=sm>ลากไฟล์มาวาง / คลิกเลือก</div>`;
+    T.slots[t.k]={el:s,t,T,k:t.k};s.appendChild(upBtn('📁 อัปโหลดจากเครื่อง',f=>setSlot(T,t.k,f)));g.appendChild(s);
+    drop(s,f=>setSlot(T,t.k,f));
+  });
+  $('#teams').appendChild(c);fillLogoSel();
+  for(const k in (d.files||{}))if(T.slots[k])await setSlot(T,k,d.files[k].blob,d.files[k].name,true);
+}
+async function setSlot(T,k,f,name,quiet){
+  const i=await readImg(f),sl=T.slots[k];Object.assign(sl,{img:i,file:f,name:name||sl.name});render(sl);
+  if(k==='car'&&!T.manual)autoColor(T,i);if(!quiet)saveTeams();
+}
+function autoColor(T,img){
+  const c=document.createElement('canvas');c.width=c.height=48;const x=c.getContext('2d');x.drawImage(img,0,0,48,48);const d=x.getImageData(0,0,48,48).data;let r=0,g=0,b=0,n=0;
+  for(let i=0;i<d.length;i+=4){if(d[i+3]<200)continue;const mx=Math.max(d[i],d[i+1],d[i+2]),mn=Math.min(d[i],d[i+1],d[i+2]),sa=mx?(mx-mn)/mx:0;if(sa<.35||mx<70)continue;r+=d[i]*sa;g+=d[i+1]*sa;b+=d[i+2]*sa;n+=sa}
+  if(!n)return;const h=v=>Math.round(v/n).toString(16).padStart(2,'0');T.color='#'+h(r)+h(g)+h(b);T.colorEl.value=T.color;
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function fillLogoSel(){teams.forEach(T=>{if(!T.lgSel)return;T.lgSel.innerHTML='<option value="">โลโก้: —</option>'+LIB.map(r=>`<option value="${r.id}">${esc(r.name)}</option>`).join('');T.lgSel.value=T.logoId})}
+// persistence
+const idb2=new Promise(r=>{try{const q=indexedDB.open('lvdata',1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch(e){r(null)}});
+const kvGet=async k=>{const d=await idb2;if(!d)return;return new Promise(r=>{try{const q=d.transaction('kv').objectStore('kv').get(k);q.onsuccess=()=>r(q.result);q.onerror=()=>r()}catch(e){r()}})};
+const kvSet=async(k,v)=>{const d=await idb2;if(!d)return;return new Promise(r=>{try{const t=d.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=()=>r();t.onerror=()=>r()}catch(e){r()}})};
+let svT;function saveTeams(){clearTimeout(svT);svT=setTimeout(()=>kvSet('teams',teams.map(T=>({name:T.name,color:T.manual?T.color:'',logoId:T.logoId,files:Object.fromEntries(Object.entries(T.slots).filter(([k,x])=>x.file).map(([k,x])=>[k,{blob:x.file,name:x.name||''}]))}))),400)}
+function render(sl){
+  const {el,t,img,file}=sl;if(!img)return;
+  const same=img.naturalWidth===t.w&&img.naturalHeight===t.h;
+  const ar=(img.naturalWidth/img.naturalHeight)/(t.w/t.h);
+  const warn=Math.abs(ar-1)>0.02;
+  const cv=draw(img,t.w,t.h);
+  el.innerHTML=`<b>${t.n}</b>`;el.appendChild(cv);
+  const m=document.createElement('div');m.className='sm';
+  m.innerHTML=`${img.naturalWidth}×${img.naturalHeight} → <span class=ok>${t.w}×${t.h}</span>${same?' (ขนาดตรงอยู่แล้ว)':''}${warn?'<br><span class=warn>⚠ สัดส่วนไม่ตรงต้นแบบ อาจเพี้ยน</span>':''}`;
+  el.appendChild(m);
+  const n=document.createElement('input');n.type='text';n.value=sl.name||'';n.placeholder=file.name;n.title='ชื่อไฟล์ (เว้นว่าง = อัตโนมัติ)';n.oninput=()=>sl.name=n.value;n.onclick=e=>e.stopPropagation();
+  el.appendChild(n);el.appendChild(upBtn('📁 เปลี่ยนไฟล์',f=>setSlot(sl.T,sl.k,f)));
+}
+function refreshAll(){teams.forEach(T=>Object.values(T.slots).forEach(render))}
+function draw(img,w,h){
+  const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');
+  x.imageSmoothingQuality='high';
+  const mode=$('#fit').value,iw=img.naturalWidth,ih=img.naturalHeight;
+  if(mode==='stretch')x.drawImage(img,0,0,w,h);
+  else{const s=(mode==='contain'?Math.min:Math.max)(w/iw,h/ih),dw=iw*s,dh=ih*s;x.drawImage(img,(w-dw)/2,(h-dh)/2,dw,dh)}
+  return c;
+}
+$('#fit').onchange=refreshAll;
+
+const clean=s=>(s||'team').replace(/[\\/:*?"<>|]/g,'_').trim()||'team';
+function blobOf(c,fmt){
+  if(fmt==='jpg'){const o=document.createElement('canvas');o.width=c.width;o.height=c.height;const x=o.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,o.width,o.height);x.drawImage(c,0,0);c=o}
+  return new Promise(r=>c.toBlob(r,fmt==='jpg'?'image/jpeg':'image/png',.95));
+}
+async function build(){
+  const fmt=$('#fmt').value,nm=$('#nameMode').value,out=[],used={};
+  for(const T of teams){
+    let folder=clean(T.name);used[folder]=(used[folder]||0)+1;if(used[folder]>1)folder+='_'+used[folder];
+    for(const k in T.slots){
+      const sl=T.slots[k];if(!sl.img)continue;
+      const base=sl.name?sl.name.replace(/\.[^.]+$/,''):nm==='orig'?sl.file.name.replace(/\.[^.]+$/,''):sl.t.def;
+      out.push({path:folder+'/'+clean(base)+'.'+fmt,blob:await blobOf(draw(sl.img,sl.t.w,sl.t.h),fmt),folder,file:clean(base)+'.'+fmt});
+    }
+  }
+  return out;
+}
+$('#add').onclick=()=>addTeam();
+$('#zip').onclick=async()=>{
+  const files=await build();if(!files.length)return log('ยังไม่มีไฟล์');
+  if(!window.JSZip)return log('โหลด JSZip ไม่ได้ (ต้องต่ออินเทอร์เน็ต) — ใช้ปุ่มบันทึกลงโฟลเดอร์แทน');
+  const z=new JSZip();files.forEach(f=>z.file(f.path,f.blob));
+  const a=document.createElement('a');a.href=URL.createObjectURL(await z.generateAsync({type:'blob'}));a.download='liveries.zip';a.click();
+  log('สร้าง ZIP แล้ว: '+files.length+' ไฟล์\n'+files.map(f=>f.path).join('\n'));
+};
+$('#folder').onclick=async()=>{
+  if(!window.showDirectoryPicker)return log('เบราว์เซอร์นี้ไม่รองรับ — ใช้ Chrome/Edge หรือกดดาวน์โหลด ZIP');
+  const files=await build();if(!files.length)return log('ยังไม่มีไฟล์');
+  try{
+    const root=await showDirectoryPicker({mode:'readwrite'});
+    for(const f of files){
+      const d=await root.getDirectoryHandle(f.folder,{create:true});
+      const h=await d.getFileHandle(f.file,{create:true}),w=await h.createWritable();await w.write(f.blob);await w.close();
+    }
+    log('บันทึกเรียบร้อย '+files.length+' ไฟล์\n'+files.map(f=>f.path).join('\n'));
+  }catch(e){log('ยกเลิก/ผิดพลาด: '+e.message)}
+};
+/* ===== LOGO TAB ===== */
+function tab(n){['pgO','pgL','pgLogo'].forEach((p,i)=>$('#'+p).style.display=i===n?'':'none');document.querySelectorAll('.tabs button').forEach((b,i)=>b.classList.toggle('on',i===n));if(n===0)renderOverview()}
+const idb=new Promise(r=>{try{const q=indexedDB.open('lvlogos',1);q.onupgradeneeded=()=>q.result.createObjectStore('l',{keyPath:'id',autoIncrement:true});q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch(e){r(null)}});
+const tx=async(m,f)=>{const d=await idb;if(!d)return;return new Promise(r=>{try{const q=f(d.transaction('l',m).objectStore('l'));q.onsuccess=()=>r(q.result);q.onerror=()=>r()}catch(e){r()}})};
+const strip=r=>{const o={name:r.name,orig:r.orig,tol:r.tol,bg:r.bg,glob:r.glob,png:r.png};if(r.id)o.id=r.id;return o};
+const LIB=[];
+function removeBg(img,p){
+  let w=img.naturalWidth||300,h=img.naturalHeight||300;const s=Math.min(1,1024/Math.max(w,h));w=Math.round(w*s);h=Math.round(h*s);
+  const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(img,0,0,w,h);
+  const im=x.getImageData(0,0,w,h),d=im.data,n=w*h;let tr=0;for(let i=3;i<d.length;i+=4)if(d[i]<250)tr++;
+  if(tr<n*0.02){
+    let bg;if(p.bg==='white')bg=[255,255,255];else if(p.bg==='black')bg=[0,0,0];
+    else{const pts=[0,w-1,(h-1)*w,n-1].map(k=>[d[k*4],d[k*4+1],d[k*4+2]]);bg=[0,1,2].map(j=>pts.map(q=>q[j]).sort((a,b)=>a-b)[1])}
+    const T=p.tol,dist=k=>Math.max(Math.abs(d[k*4]-bg[0]),Math.abs(d[k*4+1]-bg[1]),Math.abs(d[k*4+2]-bg[2]));
+    const rm=new Uint8Array(n);
+    if(p.glob){for(let k=0;k<n;k++)if(dist(k)<=T)rm[k]=1}
+    else{const st=[],push=k=>{if(!rm[k]&&dist(k)<=T){rm[k]=1;st.push(k)}};
+      for(let X=0;X<w;X++){push(X);push((h-1)*w+X)}for(let Y=0;Y<h;Y++){push(Y*w);push(Y*w+w-1)}
+      while(st.length){const k=st.pop(),X=k%w;if(X>0)push(k-1);if(X<w-1)push(k+1);if(k>=w)push(k-w);if(k<n-w)push(k+w)}}
+    const R=Math.max(T,8);
+    for(let k=0;k<n;k++){
+      if(rm[k]){d[k*4+3]=0;continue}
+      const X=k%w;
+      if((X>0&&rm[k-1])||(X<w-1&&rm[k+1])||(k>=w&&rm[k-w])||(k<n-w&&rm[k+w]))d[k*4+3]=Math.max(0,Math.min(255,(dist(k)-T)/R*255));
+    }
+    x.putImageData(im,0,0);
+  }
+  // trim transparent margins
+  let x0=w,y0=h,x1=-1,y1=-1;const dd=x.getImageData(0,0,w,h).data;
+  for(let Y=0;Y<h;Y++)for(let X=0;X<w;X++)if(dd[(Y*w+X)*4+3]>8){if(X<x0)x0=X;if(X>x1)x1=X;if(Y<y0)y0=Y;if(Y>y1)y1=Y}
+  if(x1<0)return c;
+  const o=document.createElement('canvas');o.width=x1-x0+1;o.height=y1-y0+1;o.getContext('2d').drawImage(c,x0,y0,o.width,o.height,0,0,o.width,o.height);return o;
+}
+async function proc(r){const i=await readImg(r.orig);r.png=await new Promise(x=>removeBg(i,r).toBlob(x,'image/png'));r.img=await readImg(r.png);if(r.url)URL.revokeObjectURL(r.url);r.url=URL.createObjectURL(r.png)}
+async function addLogo(f){
+  const r={name:f.name.replace(/\.[^.]+$/,''),orig:f,tol:+$('#tolD').value||40,bg:'auto',glob:false};
+  try{await proc(r)}catch(e){return log('เปิดไฟล์นี้ไม่ได้ (เบราว์เซอร์ไม่รองรับ): '+f.name)}
+  r.id=await tx('readwrite',s=>s.add(strip(r)));LIB.push(r);
+}
+async function addMany(fs){log('กำลังประมวลผล...');for(const f of fs)await addLogo(f);renderLib();log('นำเข้าแล้ว '+fs.length+' ไฟล์ — รวมในคลัง '+LIB.length)}
+const lgDrop=$('#logoDrop');
+lgDrop.ondragover=e=>{e.preventDefault();lgDrop.classList.add('over')};lgDrop.ondragleave=()=>lgDrop.classList.remove('over');
+lgDrop.ondrop=e=>{e.preventDefault();lgDrop.classList.remove('over');addMany([...e.dataTransfer.files])};
+lgDrop.onclick=()=>{const i=document.createElement('input');i.type='file';i.multiple=true;i.accept='image/*';i.onchange=()=>addMany([...i.files]);i.click()};
+function renderLib(){
+  const L=$('#lib');L.innerHTML='';
+  LIB.forEach(r=>{
+    const d=document.createElement('div');d.className='lc';
+    d.innerHTML=`<img src="${r.url}"><input type=text value="${r.name.replace(/"/g,'&quot;')}">
+    <select><option value=auto>พื้นหลัง: ตรวจจากมุม</option><option value=white>พื้นหลัง: ขาว</option><option value=black>พื้นหลัง: ดำ</option></select>
+    <div>ความไว <span>${r.tol}</span><input type=range min=0 max=200 value=${r.tol}></div>
+    <label><input type=checkbox ${r.glob?'checked':''}> ลบสีนี้ทั้งภาพ (รวมรู/ด้านใน)</label>
+    <div class=row style="justify-content:space-between"><span class=sm>${r.img.naturalWidth}×${r.img.naturalHeight}</span><button class=g>ลบ</button></div>`;
+    const [nm,sel,rg,cb]=[d.querySelector('input[type=text]'),d.querySelector('select'),d.querySelector('input[type=range]'),d.querySelector('input[type=checkbox]')];
+    sel.value=r.bg;
+    const redo=async()=>{await proc(r);await tx('readwrite',s=>s.put(strip(r)));d.querySelector('img').src=r.url;drawSheet()};
+    nm.oninput=()=>{r.name=nm.value;tx('readwrite',s=>s.put(strip(r)));refreshSel()};
+    sel.onchange=()=>{r.bg=sel.value;redo()};
+    rg.oninput=()=>d.querySelector('span').textContent=rg.value;
+    rg.onchange=()=>{r.tol=+rg.value;redo()};
+    cb.onchange=()=>{r.glob=cb.checked;redo()};
+    d.querySelector('button').onclick=async()=>{await tx('readwrite',s=>s.delete(r.id));LIB.splice(LIB.indexOf(r),1);SL.forEach(q=>{if(q.id==r.id)q.id=''});renderLib()};
+    L.appendChild(d);
+  });
+  refreshSel();drawSheet();renderOverview();
+}
+$('#lgClear').onclick=async()=>{if(!confirm('ล้างโลโก้ทั้งหมดในคลัง?'))return;for(const r of LIB)await tx('readwrite',s=>s.delete(r.id));LIB.length=0;SL.forEach(q=>q.id='');renderLib()};
+function logoFiles(){const u={};return LIB.map(r=>{let n=clean(r.name),b=n;u[b]=(u[b]||0)+1;if(u[b]>1)n+='_'+u[b];return{folder:'logo',file:n+'.png',path:'logo/'+n+'.png',blob:r.png}})}
+$('#lgFolder').onclick=async()=>{
+  if(!LIB.length)return log('ยังไม่มีโลโก้');
+  if(!window.showDirectoryPicker)return log('เบราว์เซอร์นี้ไม่รองรับ — ใช้ Chrome/Edge หรือกด ZIP');
+  try{const root=await showDirectoryPicker({mode:'readwrite'}),f=logoFiles(),d=await root.getDirectoryHandle('logo',{create:true});
+    for(const x of f){const w=await(await d.getFileHandle(x.file,{create:true})).createWritable();await w.write(x.blob);await w.close()}
+    log('บันทึกลงโฟลเดอร์ logo แล้ว '+f.length+' ไฟล์')}catch(e){log('ยกเลิก/ผิดพลาด: '+e.message)}
+};
+$('#lgZip').onclick=async()=>{
+  if(!LIB.length)return log('ยังไม่มีโลโก้');if(!window.JSZip)return log('โหลด JSZip ไม่ได้ (ต้องต่ออินเทอร์เน็ต)');
+  const z=new JSZip();logoFiles().forEach(f=>z.file(f.path,f.blob));
+  const a=document.createElement('a');a.href=URL.createObjectURL(await z.generateAsync({type:'blob'}));a.download='logo.zip';a.click();log('สร้าง logo.zip แล้ว')
+};
+// sheet composer
+let SH={};try{SH=JSON.parse(localStorage.getItem('lvSheet')||'{}')}catch(e){}
+if(SH.w){$('#shW').value=SH.w;$('#shH').value=SH.h}
+const SL=Array.from({length:12},()=>({id:'',sc:100}));
+const slotsEl=$('#slots');
+SL.forEach((q,i)=>{const d=document.createElement('div');d.innerHTML=`ทีม ${i+1}<select></select><input type=range min=40 max=160 value=100>`;
+  d.querySelector('select').onchange=e=>{q.id=e.target.value;drawSheet()};
+  d.querySelector('input').oninput=e=>{q.sc=+e.target.value;drawSheet()};slotsEl.appendChild(d)});
+function refreshSel(){fillLogoSel();slotsEl.querySelectorAll('select').forEach((s,i)=>{s.innerHTML='<option value="">— ว่าง —</option>'+LIB.map(r=>`<option value="${r.id}">${r.name.replace(/</g,'&lt;')}</option>`).join('');s.value=SL[i].id})}
+function drawSheet(){
+  const W=+$('#shW').value||1024,H=+$('#shH').value||1024,c=$('#sheet');c.width=W;c.height=H;const x=c.getContext('2d');
+  x.imageSmoothingQuality='high';if($('#shBg').value==='black'){x.fillStyle='#000';x.fillRect(0,0,W,H)}
+  const cell=W/4;
+  SL.forEach((q,i)=>{const r=LIB.find(l=>l.id==q.id);if(!r)return;const m=cell*.7*q.sc/100,k=Math.min(m/r.img.naturalWidth,m/r.img.naturalHeight),w=r.img.naturalWidth*k,h=r.img.naturalHeight*k;
+    x.drawImage(r.img,(i%4+.5)*cell-w/2,(Math.floor(i/4)+.5)*cell-h/2,w,h)});
+}
+['shW','shH'].forEach(i=>$('#'+i).onchange=()=>{try{localStorage.setItem('lvSheet',JSON.stringify({w:+$('#shW').value,h:+$('#shH').value}))}catch(e){}drawSheet()});
+$('#shBg').onchange=drawSheet;
+drop($('#shDrop'),async f=>{const i=await readImg(f);$('#shW').value=i.naturalWidth;$('#shH').value=i.naturalHeight;$('#shW').onchange()});
+$('#shSave').onclick=()=>$('#sheet').toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=clean($('#shName').value||'logo_sheet')+'.png';a.click();log('บันทึกรูปรวมแล้ว '+$('#sheet').width+'×'+$('#sheet').height)});
+(async()=>{const all=(await tx('readonly',s=>s.getAll()))||[];for(const r of all){try{if(!r.png)await proc(r);else{r.img=await readImg(r.png);r.url=URL.createObjectURL(r.png)}LIB.push(r)}catch(e){}}renderLib()})();
+
+/* ===== OVERVIEW + 3D VIEWER ===== */
+function shade(hex,f){const n=parseInt(hex.slice(1),16),c=i=>Math.max(0,Math.min(255,Math.round(((n>>i)&255)*f)));return `rgb(${c(16)},${c(8)},${c(0)})`}
+function thumb(img,t){const c=document.createElement('canvas');c.width=320;c.height=Math.round(320*t.h/t.w);c.getContext('2d').drawImage(img,0,0,c.width,c.height);return c.toDataURL()}
+function renderOverview(){
+  const O=$('#ov');O.innerHTML='';
+  if(!teams.some(T=>Object.values(T.slots).some(x=>x.img))){O.innerHTML='<p>ยังไม่มีทีม — ไปที่แท็บ "🎨 สกิน" เพิ่มทีมแล้วใส่ไฟล์รถ/หมวก/ชุด จากนั้นกลับมาดูภาพรวมที่นี่</p>';return}
+  teams.forEach((T,ti)=>{
+    const col=T.color||'#d32f2f',lg=LIB.find(l=>l.id==T.logoId),d=document.createElement('div');d.className='tc';
+    d.style.background=`linear-gradient(120deg,${shade(col,.4)},${col})`;
+    d.innerHTML=`<h3>${esc(T.name)}</h3>${lg?`<div class=bd><img src="${lg.url}"></div>`:''}<div class=st></div>`;
+    TYPES.forEach(t=>{const sl=T.slots[t.k],tile=document.createElement('div');tile.className='tile';
+      tile.innerHTML=sl&&sl.img?`<img src="${thumb(sl.img,t)}"><div>${t.n}</div>`:`<div style="height:84px;opacity:.7;padding-top:30px">＋ อัปโหลด</div><div>${t.n}</div>`;
+      tile.onclick=sl&&sl.img?()=>openViewer(ti,t.k):()=>pick(async f=>{await setSlot(T,t.k,f);renderOverview()});d.querySelector('.st').appendChild(tile)});
+    O.appendChild(d);
+  });
+}
+const V={ti:0,k:'car'};
+function openViewer(ti,k){V.ti=ti;V.k=k;$('#vw').style.display='flex';showV()}
+function vNav(d){V.ti=(V.ti+d+teams.length)%teams.length;showV()}
+$('#vwX').onclick=()=>$('#vw').style.display='none';
+document.querySelectorAll('#vwTabs button').forEach(b=>b.onclick=()=>{V.k=b.dataset.k;showV()});
+function initV(){
+  if(V.r)return;
+  V.r=new THREE.WebGLRenderer({antialias:true,alpha:true});V.r.outputEncoding=THREE.sRGBEncoding;V.r.setPixelRatio(Math.min(devicePixelRatio,2));
+  $('#vw3').appendChild(V.r.domElement);V.s=new THREE.Scene();V.cam=new THREE.PerspectiveCamera(40,1,.1,100);
+  V.s.add(new THREE.HemisphereLight(0xffffff,0x444455,1.1));const dl=new THREE.DirectionalLight(0xffffff,1.2);dl.position.set(3,5,4);V.s.add(dl);
+  V.ctl=new THREE.OrbitControls(V.cam,V.r.domElement);V.ctl.enableDamping=true;V.ctl.autoRotateSpeed=2.5;
+  (function loop(){requestAnimationFrame(loop);if($('#vw').style.display==='none')return;V.ctl.autoRotate=$('#vwAuto').checked;V.ctl.update();V.r.render(V.s,V.cam)})();
+  addEventListener('resize',fitV);
+}
+function fitV(){if(!V.r)return;const b=$('#vw3'),w=b.clientWidth,h=b.clientHeight;V.r.setSize(w,h);V.cam.aspect=w/h;V.cam.updateProjectionMatrix()}
+function parseModel(m){return new Promise((res,rej)=>{
+  if(m.ext==='obj')res({o:new THREE.OBJLoader().parse(new TextDecoder().decode(m.buf)),flip:true});
+  else new THREE.GLTFLoader().parse(m.buf,'',g=>res({o:g.scene,flip:false}),rej)})}
+async function showV(){
+  const T=teams[V.ti];if(!T)return;const t=TYPES.find(x=>x.k===V.k),sl=T.slots[V.k];
+  $('#vwT').textContent=T.name+' — '+t.n;
+  document.querySelectorAll('#vwTabs button').forEach(b=>b.classList.toggle('on',b.dataset.k===V.k));
+  const tex=sl&&sl.img?draw(sl.img,t.w,t.h):null,m=await kvGet('m_'+V.k),im=$('#vw2'),box=$('#vw3');
+  const flat=msg=>{box.style.display='none';im.style.display='block';im.src=tex?tex.toDataURL():'';$('#vwInfo').textContent=msg};
+  if(!tex)return flat('ทีมนี้ยังไม่มีไฟล์ชนิดนี้');
+  if(!m)return flat('ยังไม่มีโมเดล 3D ของ'+t.n.slice(2)+' — โหลดไฟล์โมเดลจากเกมเพื่อหมุนดูได้ (โมเดลจะถูกจำไว้ใช้กับทุกทีม)');
+  if(typeof THREE==='undefined')return flat('โหลดไลบรารี 3D ไม่ได้ (ต้องต่ออินเทอร์เน็ต)');
+  try{
+    initV();const {o,flip}=await parseModel(m);
+    box.style.display='';im.style.display='none';fitV();
+    const tx=new THREE.CanvasTexture(tex);tx.flipY=flip;tx.encoding=THREE.sRGBEncoding;tx.anisotropy=8;
+    o.traverse(n=>{if(n.isMesh)n.material=new THREE.MeshStandardMaterial({map:tx,roughness:.45,metalness:.25,side:THREE.DoubleSide})});
+    const bx=new THREE.Box3().setFromObject(o),sz=bx.getSize(new THREE.Vector3()),ct=bx.getCenter(new THREE.Vector3()),sc=3/Math.max(sz.x,sz.y,sz.z);
+    o.scale.setScalar(sc);o.position.copy(ct.multiplyScalar(-sc));
+    if(V.obj)V.s.remove(V.obj);V.obj=o;V.s.add(o);
+    if(V.shown!==V.k){V.cam.position.set(3.5,1.8,4.5);V.ctl.target.set(0,0,0);V.shown=V.k}
+    $('#vwInfo').textContent='โมเดล: '+m.name+' — ลากเมาส์เพื่อหมุน, ล้อเมาส์เพื่อซูม';
+  }catch(e){flat('เปิดโมเดลไม่ได้: '+e.message)}
+}
+$('#vwLoad').onclick=()=>{const i=document.createElement('input');i.type='file';i.accept='.glb,.obj';
+  i.onchange=async()=>{const f=i.files[0];if(!f)return;await kvSet('m_'+V.k,{name:f.name,ext:f.name.split('.').pop().toLowerCase(),buf:await f.arrayBuffer()});showV()};i.click()};
+(async()=>{const sv=(await kvGet('teams'))||[];if(sv.length)for(const d of sv)await addTeam(d);else addTeam();renderOverview()})();
+$('#lgUp').onclick=()=>pick(addMany,true);
+$('#shDrop').appendChild(upBtn('📁 เลือกไฟล์ต้นแบบ',async f=>{const i=await readImg(f);$('#shW').value=i.naturalWidth;$('#shH').value=i.naturalHeight;$('#shW').onchange()}));
+</script>
+</body>
+</html>
