@@ -1,5 +1,5 @@
 {
-  "routes": [
-    { "src": "/", "destination": "f1.html" }
+  "rewrites": [
+    { "source": "/", "destination": "/f1.html" }
   ]
 }
